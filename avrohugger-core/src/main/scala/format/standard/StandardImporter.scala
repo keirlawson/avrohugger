@@ -127,6 +127,8 @@ object StandardImporter extends Importer {
       shapelessImport(shapelessTag.distinct)
   }
 
+  val vulcanImport = List(IMPORT(RootClass.newClass("vulcan.Codec")))
+
   def getImports(
     schemaOrProtocol: Either[Schema, Protocol],
     currentNamespace: Option[String],
@@ -138,7 +140,7 @@ object StandardImporter extends Importer {
     val enumSchemas = getEnumSchemas(topLevelSchemas)
     val userDefinedDeps = getUserDefinedImports(recordSchemas ++ fixedSchemas ++ enumSchemas, currentNamespace, typeMatcher)
     val shapelessDeps = getShapelessImports(recordSchemas, typeMatcher)
-    val libraryDeps = shapelessDeps
+    val libraryDeps = shapelessDeps ++ vulcanImport
     libraryDeps ++ userDefinedDeps
   }
 

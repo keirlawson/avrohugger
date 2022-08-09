@@ -13,19 +13,27 @@ import treehuggerDSL._
 import org.apache.avro.Schema
 
 import scala.collection.JavaConverters._
+import treehugger.Names
 
 object StandardObjectTree {
   
   def toCaseCompanionDef(schema: Schema, maybeFlags: Option[List[Long]]) = {
     val ParserClass = RootClass.newClass("org.apache.avro.Schema.Parser")
+    val typeName = schema.getName
     val objectDef = maybeFlags match {
-      case Some(flags) => OBJECTDEF(schema.getName).withFlags(flags:_*)
-      case None => OBJECTDEF(schema.getName)
+      case Some(flags) => OBJECTDEF(typeName).withFlags(flags:_*)
+      case None => OBJECTDEF(typeName)
     }
+    val avroFields = schema.getFields().asScala.toList
+    val fields = avroFields.map { field =>
+      REF("field") APPLY(LIT(field.name()), WILDCARD DOT FieldRenamer.rename(field.name()))
+    }
+    val codec = RootClass.newClass("Codec")//FIXME is this correct? what about import?
     // companion object definition
     objectDef := BLOCK(
-      VAL(REF("SCHEMA$")) := {
-        (NEW(ParserClass)) APPLY(Nil) DOT "parse" APPLY(LIT(schema.toString))
+      VAL("codec", codec TYPE_OF typeName).withFlags(Flags.IMPLICIT) := {
+        (REF("Codec") DOT "record") APPLY (REF("name") := LIT(typeName), REF("namespace") := LIT(schema.getNamespace())) APPLY LAMBDA(PARAM("field")) ==> 
+          BLOCK(TUPLE(fields) DOT("mapN") APPLY(REF(typeName) APPLY (List.fill(fields.length)(WILDCARD))))
       }
     )
   }
